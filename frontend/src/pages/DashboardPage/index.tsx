@@ -14,7 +14,6 @@ export default function DashboardPage() {
     tableData,
     selectedTheme,
     creditsRemaining,
-    hasCredits,
     setTableData,
     setTheme,
     decrementCredits,

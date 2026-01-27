@@ -25,7 +25,7 @@ const initialState = {
   creditsRemaining: 5,
 };
 
-export const useStore = create<StoreState>((set, get) => ({
+export const useStore = create<StoreState>((set) => ({
   ...initialState,
 
   hasCredits: true,
