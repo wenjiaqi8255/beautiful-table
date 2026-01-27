@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { parseRoute } from './routes/parse'
 import { userRoutes } from './routes/users'
+import { paymentRoutes } from './routes/payment'
 
 type Bindings = {
   DB: D1Database
@@ -33,6 +34,9 @@ app.route('/', parseRoute)
 
 // Mount user routes
 app.route('/', userRoutes)
+
+// Mount payment routes
+app.route('/', paymentRoutes)
 
 // Export the fetch handler for Cloudflare Workers
 export default app
