@@ -1,0 +1,14 @@
+name = "beautiful-table-worker"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "beautiful-table-db"
+database_id = "your-database-id-here"
+
+# Vitest integration for testing
+[env.test]
+name = "beautiful-table-worker-test"

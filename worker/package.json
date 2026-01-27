@@ -1,0 +1,22 @@
+{
+  "name": "beautiful-table-worker",
+  "version": "0.0.1",
+  "description": "Beautiful Table Cloudflare Workers Backend",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "hono": "^4.6.11"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.5.34",
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.7.2",
+    "vitest": "~2.1.8",
+    "wrangler": "^3.94.0"
+  }
+}
