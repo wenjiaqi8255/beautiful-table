@@ -1,0 +1,77 @@
+.theme-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.theme-selector-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.theme-selector-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.theme-selector-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 100px;
+}
+
+.theme-selector-button:hover {
+  border-color: #3b82f6;
+  background-color: #f9fafb;
+}
+
+.theme-selector-button-selected {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.theme-selector-preview {
+  width: 60px;
+  height: 40px;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.theme-selector-preview-header {
+  height: 8px;
+  width: 100%;
+}
+
+.theme-selector-preview-rows {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px;
+}
+
+.theme-selector-preview-row {
+  height: 4px;
+  width: 100%;
+  border-radius: 1px;
+}
+
+.theme-selector-button-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: capitalize;
+}
