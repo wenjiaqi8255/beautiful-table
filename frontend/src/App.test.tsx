@@ -14,13 +14,13 @@ vi.mock('./pages/DashboardPage/index', () => ({
   default: () => <div data-testid="dashboard-page">Dashboard Page</div>,
 }));
 
-// Mock Supabase - define inline
-vi.mock('./lib/supabase', () => ({
+// Mock auth - define inline
+vi.mock('./lib/auth', () => ({
   getCurrentUser: vi.fn(),
 }));
 
 import App from './App';
-import { getCurrentUser } from './lib/supabase';
+import { getCurrentUser } from './lib/auth';
 
 describe('App', () => {
   beforeEach(() => {

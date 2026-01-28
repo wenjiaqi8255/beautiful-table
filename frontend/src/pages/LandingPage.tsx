@@ -1,11 +1,12 @@
-import { signIn } from '../lib/supabase';
+import { signInWithGoogle } from '../lib/auth';
 
 export default function LandingPage() {
   const handleSignIn = async () => {
     try {
-      await signIn();
+      await signInWithGoogle();
     } catch (error) {
       console.error('Failed to sign in:', error);
+      alert('Failed to sign in. Please try again.');
     }
   };
 

@@ -9,21 +9,18 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual as object,
     useNavigate: () => mockNavigate,
+    useSearchParams: () => [new URLSearchParams({ code: 'test-code', state: 'test-state' })],
   };
 });
 
-// Mock Supabase - must be defined inline to avoid hoisting issues
-vi.mock('../lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn(),
-    },
-  },
+// Mock auth - must be defined inline to avoid hoisting issues
+vi.mock('../lib/auth', () => ({
+  handleOAuthCallback: vi.fn(),
 }));
 
 // Import after mocking
 import AuthCallback from './AuthCallback';
-import { supabase } from '../lib/supabase';
+import { handleOAuthCallback } from '../lib/auth';
 
 describe('AuthCallback Page', () => {
   beforeEach(() => {
@@ -35,9 +32,9 @@ describe('AuthCallback Page', () => {
   };
 
   it('should render loading state', () => {
-    (supabase.auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { session: null },
-      error: null,
+    (handleOAuthCallback as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: { id: 'user-123' },
+      token: 'test-token',
     });
 
     renderWithRouter(<AuthCallback />);
@@ -46,24 +43,33 @@ describe('AuthCallback Page', () => {
     expect(screen.getByText(/signing you in/i)).toBeInTheDocument();
   });
 
-  it('should redirect to /app when session exists', async () => {
-    (supabase.auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { session: { user: { id: 'user-123' } } },
-      error: null,
+  it('should redirect to /app when OAuth callback succeeds', async () => {
+    (handleOAuthCallback as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: { id: 'user-123' },
+      token: 'test-token',
     });
 
     renderWithRouter(<AuthCallback />);
 
     await waitFor(() => {
+      expect(handleOAuthCallback).toHaveBeenCalledWith('test-code', 'test-state');
       expect(mockNavigate).toHaveBeenCalledWith('/app', { replace: true });
     });
   });
 
-  it('should redirect to / when no session exists', async () => {
-    (supabase.auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { session: null },
-      error: null,
-    });
+  it('should redirect to / when no code in URL', async () => {
+    // Override useSearchParams mock for this test
+    (mockNavigate as any).mockImplementationOnce(() => ({
+      get: (param: string) => {
+        if (param === 'code') return null;
+        if (param === 'state') return 'test-state';
+        return null;
+      },
+    }));
+
+    // Re-import to use updated mock
+    const { useSearchParams } = await import('react-router-dom');
+    (useSearchParams as any).mockReturnValueOnce([new URLSearchParams({ state: 'test-state' })]);
 
     renderWithRouter(<AuthCallback />);
 
@@ -73,10 +79,9 @@ describe('AuthCallback Page', () => {
   });
 
   it('should redirect to / on error', async () => {
-    (supabase.auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { session: null },
-      error: new Error('Auth failed'),
-    });
+    (handleOAuthCallback as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('OAuth failed')
+    );
 
     renderWithRouter(<AuthCallback />);
 
@@ -86,9 +91,9 @@ describe('AuthCallback Page', () => {
   });
 
   it('should show loading spinner or indicator', () => {
-    (supabase.auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { session: null },
-      error: null,
+    (handleOAuthCallback as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: { id: 'user-123' },
+      token: 'test-token',
     });
 
     renderWithRouter(<AuthCallback />);

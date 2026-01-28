@@ -3,9 +3,14 @@ import { cors } from 'hono/cors'
 import { parseRoute } from './routes/parse'
 import { userRoutes } from './routes/users'
 import { paymentRoutes } from './routes/payment'
+import { usage } from './routes/usage'
+import { authRoutes } from './routes/auth'
 
 type Bindings = {
   DB: D1Database
+  JWT_SECRET: string
+  GOOGLE_OAUTH_CLIENT_ID: string
+  GOOGLE_OAUTH_CLIENT_SECRET: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -37,6 +42,12 @@ app.route('/', userRoutes)
 
 // Mount payment routes
 app.route('/', paymentRoutes)
+
+// Mount usage routes
+app.route('/', usage)
+
+// Mount auth routes
+app.route('/api/auth', authRoutes)
 
 // Export the fetch handler for Cloudflare Workers
 export default app

@@ -7,8 +7,28 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "beautiful-table-db"
-database_id = "your-database-id-here"
+database_id = "your-database-id-here"  # Replace with actual D1 database ID
+
+# Environment variables (use wrangler secret for sensitive values)
+# wrangler secret put JWT_SECRET
+# wrangler secret put GOOGLE_OAUTH_CLIENT_ID
+# wrangler secret put GOOGLE_OAUTH_CLIENT_SECRET
+# wrangler secret put STRIPE_SECRET_KEY
+# wrangler secret put STRIPE_WEBHOOK_SECRET
+
+[vars]
+ENVIRONMENT = "production"
 
 # Vitest integration for testing
 [env.test]
 name = "beautiful-table-worker-test"
+
+# Production deployment configuration
+# Deploy with: wrangler deploy --env production
+[env.production]
+name = "beautiful-table-worker-prod"
+
+# Custom domain (optional)
+# routes = [
+#   { pattern = "api.yourdomain.com/*", zone_name = "yourdomain.com" }
+# ]

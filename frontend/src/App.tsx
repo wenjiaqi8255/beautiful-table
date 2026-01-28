@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import LandingPage from './pages/LandingPage';
 import AuthCallback from './pages/AuthCallback';
 import DashboardPage from './pages/DashboardPage';
-import { getCurrentUser } from './lib/supabase';
+import { getCurrentUser } from './lib/auth';
+import type { User } from './lib/auth';
 
 function App() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

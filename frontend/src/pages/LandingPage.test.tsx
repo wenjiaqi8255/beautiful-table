@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import LandingPage from './LandingPage';
 
-// Mock signIn
-vi.mock('../lib/supabase', () => ({
-  signIn: vi.fn(),
+// Mock signInWithGoogle
+vi.mock('../lib/auth', () => ({
+  signInWithGoogle: vi.fn(),
 }));
 
 describe('LandingPage', () => {
@@ -18,14 +18,14 @@ describe('LandingPage', () => {
     expect(screen.getByText(/sign in with google/i)).toBeInTheDocument();
   });
 
-  it('should call signIn when button clicked', async () => {
-    const { signIn } = await import('../lib/supabase');
+  it('should call signInWithGoogle when button clicked', async () => {
+    const { signInWithGoogle } = await import('../lib/auth');
     render(<LandingPage />);
 
     const button = screen.getByText(/sign in with google/i);
     fireEvent.click(button);
 
-    expect(signIn).toHaveBeenCalled();
+    expect(signInWithGoogle).toHaveBeenCalled();
   });
 
   it('should render feature sections', () => {

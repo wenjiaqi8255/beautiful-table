@@ -1,26 +1,25 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { handleOAuthCallback } from '../lib/auth';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     async function handleAuthCallback() {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const code = searchParams.get('code');
+        const state = searchParams.get('state');
 
-        if (error) {
-          console.error('Error getting session:', error);
+        if (!code) {
+          console.error('No authorization code in callback');
           navigate('/', { replace: true });
           return;
         }
 
-        if (data.session) {
-          navigate('/app', { replace: true });
-        } else {
-          navigate('/', { replace: true });
-        }
+        await handleOAuthCallback(code, state || '');
+        navigate('/app', { replace: true });
       } catch (error) {
         console.error('Auth callback error:', error);
         navigate('/', { replace: true });
@@ -28,7 +27,7 @@ export default function AuthCallback() {
     }
 
     handleAuthCallback();
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
