@@ -71,9 +71,45 @@ app.route('/', usage)
 
 // Mount Better Auth handler - handles all /api/auth/* routes
 // Based on official Better Auth Hono integration docs
-app.on(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/api/auth/*', (c) => {
-  const auth = createAuth(c.env);
-  return auth.handler(c.req.raw);
+app.on(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/api/auth/*', async (c) => {
+  const startTime = Date.now();
+  const url = c.req.url;
+  const method = c.req.method;
+
+  console.log(`[Worker] ${method} ${url} - Starting request`);
+
+  try {
+    const auth = createAuth(c.env);
+    const response = await auth.handler(c.req.raw);
+
+    const duration = Date.now() - startTime;
+    console.log(`[Worker] ${method} ${url} - Completed in ${duration}ms`);
+
+    return response;
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[Worker] ${method} ${url} - Failed after ${duration}ms`);
+    console.error('[Worker] Error name:', error?.constructor?.name);
+    console.error('[Worker] Error message:', error?.message);
+    console.error('[Worker] Error stack:', error?.stack);
+    console.error('[Worker] Full error:', JSON.stringify(error, (key, value) => {
+      if (value instanceof Error) {
+        return {
+          name: value.name,
+          message: value.message,
+          stack: value.stack
+        };
+      }
+      return value;
+    }));
+
+    // Return error response
+    return c.json({
+      error: 'Internal Server Error',
+      message: error?.message || 'Unknown error',
+      type: error?.constructor?.name
+    }, 500);
+  }
 });
 
 // Export the fetch handler for Cloudflare Workers

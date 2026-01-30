@@ -36,10 +36,14 @@ export function createAuth(env: any) {
       // Add better error logging for debugging
       onRequestError: (error) => {
         console.error('[Better Auth] Request Error:', error);
+        console.error('[Better Auth] Error stack:', error.stack);
+        console.error('[Better Auth] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
         throw error;
       },
       onResponseError: (error) => {
         console.error('[Better Auth] Response Error:', error);
+        console.error('[Better Auth] Error stack:', error.stack);
+        console.error('[Better Auth] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
         throw error;
       },
     },
