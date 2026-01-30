@@ -57,7 +57,7 @@ export function getDbForAuth(databaseUrl: string) {
                       // Clone the data to avoid mutation
                       const modifiedData = { ...data };
 
-                      // Serialize value field if it's an object
+                      // Serialize value field if it's an object (but not if already a string)
                       if ('value' in modifiedData && typeof modifiedData.value === 'object' && modifiedData.value !== null) {
                         console.log('[DB Wrapper] Original value type:', typeof modifiedData.value);
                         console.log('[DB Wrapper] Original value:', JSON.stringify(modifiedData.value).substring(0, 100));
@@ -65,6 +65,26 @@ export function getDbForAuth(databaseUrl: string) {
                         console.log('[DB Wrapper] ✅ Serialized verification.value to JSON string');
                       }
 
+                      // Convert date fields to Unix timestamps (integer seconds)
+                      const dateFields = ['expiresAt', 'createdAt', 'updatedAt'];
+                      for (const field of dateFields) {
+                        if (field in modifiedData) {
+                          const value = modifiedData[field];
+                          if (value instanceof Date) {
+                            console.log(`[DB Wrapper] Converting ${field} from Date to timestamp`);
+                            modifiedData[field] = Math.floor(value.getTime() / 1000);
+                          } else if (typeof value === 'string' && !isNaN(Date.parse(value))) {
+                            console.log(`[DB Wrapper] Converting ${field} from ISO string to timestamp`);
+                            modifiedData[field] = Math.floor(new Date(value).getTime() / 1000);
+                          } else if (typeof value === 'number' && value > 1000000000000) {
+                            // This is milliseconds, convert to seconds
+                            console.log(`[DB Wrapper] Converting ${field} from ms to seconds`);
+                            modifiedData[field] = Math.floor(value / 1000);
+                          }
+                        }
+                      }
+
+                      console.log('[DB Wrapper] Modified data:', JSON.stringify(modifiedData));
                       console.log('[DB Wrapper] Calling original .values() with modified data');
                       try {
                         const result = builderValue.call(builderTarget, modifiedData);
