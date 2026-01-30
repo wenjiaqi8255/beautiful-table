@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { handleOAuthCallback } from '../lib/auth';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -9,17 +8,24 @@ export default function AuthCallback() {
   useEffect(() => {
     async function handleAuthCallback() {
       try {
-        const code = searchParams.get('code');
-        const state = searchParams.get('state');
+        // Better Auth handles the callback automatically
+        // The token is stored in cookies/headers by Better Auth
+        const token = searchParams.get('token');
 
-        if (!code) {
-          console.error('No authorization code in callback');
-          navigate('/', { replace: true });
-          return;
+        if (token) {
+          // Better Auth has already handled the authentication
+          navigate('/app', { replace: true });
+        } else {
+          // Check if there's an error
+          const error = searchParams.get('error');
+          if (error) {
+            console.error('OAuth error:', error);
+            navigate('/?error=' + encodeURIComponent(error), { replace: true });
+          } else {
+            // Just redirect to app - Better Auth session is already set
+            navigate('/app', { replace: true });
+          }
         }
-
-        await handleOAuthCallback(code, state || '');
-        navigate('/app', { replace: true });
       } catch (error) {
         console.error('Auth callback error:', error);
         navigate('/', { replace: true });

@@ -1,11 +1,26 @@
+import { createAuthClient } from 'better-auth/react';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+export const authClient = createAuthClient({
+  baseURL: API_BASE_URL,
+});
+
+export const {
+  signIn,
+  signOut,
+  signUp,
+  useSession,
+} = authClient;
 
 export interface User {
   id: string;
   email: string;
+  name?: string;
+  image?: string;
   credits: number;
-  total_purchased: number;
-  created_at: string;
+  totalPurchased: number;
+  createdAt: number;
 }
 
 export interface AuthResponse {
@@ -21,55 +36,48 @@ export class AuthError extends Error {
 }
 
 /**
- * Register a new user with email and password
+ * Get current authenticated user using Better Auth
  */
-export async function register(email: string, password: string): Promise<AuthResponse> {
+export async function getCurrentUser(): Promise<User | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    const session = await authClient.getSession();
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new AuthError(data.error || 'Registration failed');
+    if (!session.data) {
+      return null;
     }
 
-    setToken(data.token);
-    return data;
+    return session.data.user as unknown as User;
   } catch (error) {
-    if (error instanceof AuthError) {
-      throw error;
-    }
-    throw new AuthError(error instanceof Error ? error.message : 'Registration failed');
+    console.error('Error getting current user:', error);
+    return null;
   }
 }
 
 /**
- * Login with email and password
+ * Sign in with email and password
  */
 export async function login(email: string, password: string): Promise<AuthResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
+    const response = await signIn.email({
+      email,
+      password,
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new AuthError(data.error || 'Login failed');
+    if (response.error) {
+      throw new AuthError(response.error.message || 'Login failed');
     }
 
-    setToken(data.token);
-    return data;
+    // Fetch user data after successful login
+    const user = await getCurrentUser();
+
+    if (!user) {
+      throw new AuthError('Failed to fetch user data');
+    }
+
+    return {
+      user,
+      token: response.data?.token || '',
+    };
   } catch (error) {
     if (error instanceof AuthError) {
       throw error;
@@ -79,149 +87,36 @@ export async function login(email: string, password: string): Promise<AuthRespon
 }
 
 /**
- * Get Google OAuth URL
+ * Register a new user with email and password
  */
-export async function getGoogleOAuthUrl(): Promise<{ url: string; state: string }> {
+export async function register(email: string, password: string): Promise<AuthResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/oauth/google`, {
-      method: 'GET',
+    const response = await signUp.email({
+      email,
+      password,
+      name: email.split('@')[0], // Use email username as display name
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new AuthError(data.error || 'Failed to get OAuth URL');
+    if (response.error) {
+      throw new AuthError(response.error.message || 'Registration failed');
     }
 
-    return data;
+    // Fetch user data after successful registration
+    const user = await getCurrentUser();
+
+    if (!user) {
+      throw new AuthError('Failed to fetch user data');
+    }
+
+    return {
+      user,
+      token: response.data?.token || '',
+    };
   } catch (error) {
     if (error instanceof AuthError) {
       throw error;
     }
-    throw new AuthError(error instanceof Error ? error.message : 'Failed to get OAuth URL');
-  }
-}
-
-/**
- * Handle OAuth callback
- */
-export async function handleOAuthCallback(
-  code: string,
-  state: string
-): Promise<AuthResponse> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/oauth/callback`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ code, state }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new AuthError(data.error || 'OAuth authentication failed');
-    }
-
-    setToken(data.token);
-    return data;
-  } catch (error) {
-    if (error instanceof AuthError) {
-      throw error;
-    }
-    throw new AuthError(
-      error instanceof Error ? error.message : 'OAuth authentication failed'
-    );
-  }
-}
-
-/**
- * Get current authenticated user
- */
-export async function getCurrentUser(): Promise<User | null> {
-  try {
-    const token = getToken();
-
-    if (!token) {
-      return null;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      // Clear invalid token
-      removeToken();
-      return null;
-    }
-
-    const data = await response.json();
-    return data.user;
-  } catch (error) {
-    // On error, clear token and return null
-    removeToken();
-    return null;
-  }
-}
-
-/**
- * Sign out current user
- */
-export async function signOut(): Promise<void> {
-  try {
-    const token = getToken();
-
-    if (token) {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-    }
-  } catch (error) {
-    // Continue to remove local token even if API call fails
-    console.error('Sign out error:', error);
-  } finally {
-    removeToken();
-  }
-}
-
-/**
- * Get stored token from localStorage
- */
-export function getToken(): string | null {
-  try {
-    return localStorage.getItem('auth_token');
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Store token in localStorage
- */
-export function setToken(token: string): void {
-  try {
-    localStorage.setItem('auth_token', token);
-  } catch (error) {
-    console.error('Failed to store token:', error);
-  }
-}
-
-/**
- * Remove token from localStorage
- */
-function removeToken(): void {
-  try {
-    localStorage.removeItem('auth_token');
-  } catch (error) {
-    console.error('Failed to remove token:', error);
+    throw new AuthError(error instanceof Error ? error.message : 'Registration failed');
   }
 }
 
@@ -230,11 +125,26 @@ function removeToken(): void {
  */
 export async function signInWithGoogle(): Promise<void> {
   try {
-    const { url } = await getGoogleOAuthUrl();
-    window.location.href = url;
+    // Better Auth handles OAuth automatically
+    await signIn.social({
+      provider: 'google',
+      callbackURL: '/auth/callback',
+    });
   } catch (error) {
     throw new AuthError(
       error instanceof Error ? error.message : 'Failed to initiate Google sign-in'
     );
+  }
+}
+
+/**
+ * Sign out current user
+ */
+export async function signOutUser(): Promise<void> {
+  try {
+    await signOut();
+  } catch (error) {
+    console.error('Sign out error:', error);
+    throw new AuthError('Failed to sign out');
   }
 }

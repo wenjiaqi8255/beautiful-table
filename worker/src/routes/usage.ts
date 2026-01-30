@@ -1,8 +1,11 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import { eq, desc, sql } from 'drizzle-orm';
+import { getDb } from '../db';
+import { user, usageLogs } from '../db/schema';
 
-const usage = new Hono();
+const usage = new Hono<{ Bindings: Env }>();
 
 // Schema for usage logging
 const usageLogSchema = z.object({
@@ -22,19 +25,20 @@ usage.post('/api/usage/log', zValidator('json', usageLogSchema), async (c) => {
   const { userId, action, metadata } = c.req.valid('json');
 
   try {
-    const db = c.env.DB;
+    const db = getDb(c.env.DATABASE_URL);
 
     // Get current user credits
     const userResult = await db
-      .prepare('SELECT credits_remaining FROM users WHERE id = ?')
-      .bind(userId)
-      .first<{ credits_remaining: number }>();
+      .select({ credits: user.credits })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
 
-    if (!userResult) {
+    if (!userResult[0]) {
       return c.json({ success: false, error: 'User not found' }, 404);
     }
 
-    const currentCredits = userResult.credits_remaining;
+    const currentCredits = userResult[0].credits;
 
     // Check if user has enough credits
     if (currentCredits <= 0) {
@@ -51,29 +55,34 @@ usage.post('/api/usage/log', zValidator('json', usageLogSchema), async (c) => {
     // Deduct credit if needed
     if (creditCost > 0) {
       await db
-        .prepare('UPDATE users SET credits_remaining = credits_remaining - ?, updated_at = datetime("now") WHERE id = ?')
-        .bind(creditCost, userId)
-        .run();
+        .update(user)
+        .set({
+          credits: sql`${user.credits} - ${creditCost}`,
+          updatedAt: Math.floor(Date.now() / 1000),
+        })
+        .where(eq(user.id, userId));
     }
 
     // Log usage event
-    await db
-      .prepare(`
-        INSERT INTO usage_logs (user_id, action, metadata, created_at)
-        VALUES (?, ?, ?, datetime("now"))
-      `)
-      .bind(userId, action, JSON.stringify(metadata || {}))
-      .run();
+    const logId = crypto.randomUUID();
+    await db.insert(usageLogs).values({
+      id: logId,
+      userId,
+      creditsUsed: creditCost,
+      operation: action,
+      createdAt: Math.floor(Date.now() / 1000),
+    });
 
     // Get updated credits
     const updatedResult = await db
-      .prepare('SELECT credits_remaining FROM users WHERE id = ?')
-      .bind(userId)
-      .first<{ credits_remaining: number }>();
+      .select({ credits: user.credits })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
 
     return c.json({
       success: true,
-      creditsRemaining: updatedResult?.credits_remaining || 0
+      creditsRemaining: updatedResult[0]?.credits || 0
     });
   } catch (error) {
     console.error('Usage logging error:', error);
@@ -95,31 +104,21 @@ usage.get('/api/usage/history/:userId', async (c) => {
   const userId = c.req.param('userId');
 
   try {
-    const db = c.env.DB;
+    const db = getDb(c.env.DATABASE_URL);
 
     const logs = await db
-      .prepare(`
-        SELECT id, user_id, action, metadata, created_at
-        FROM usage_logs
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-        LIMIT 50
-      `)
-      .bind(userId)
-      .all<{
-        id: number;
-        user_id: string;
-        action: string;
-        metadata: string;
-        created_at: string;
-      }>();
+      .select()
+      .from(usageLogs)
+      .where(eq(usageLogs.userId, userId))
+      .orderBy(desc(usageLogs.createdAt))
+      .limit(50);
 
-    const history = logs.results.map(log => ({
+    const history = logs.map(log => ({
       id: log.id,
-      userId: log.user_id,
-      action: log.action,
-      metadata: JSON.parse(log.metadata || '{}'),
-      createdAt: log.created_at
+      userId: log.userId,
+      creditsUsed: log.creditsUsed,
+      operation: log.operation,
+      createdAt: log.createdAt,
     }));
 
     return c.json({ success: true, history });

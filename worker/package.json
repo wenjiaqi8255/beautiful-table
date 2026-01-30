@@ -10,13 +10,18 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "better-auth": "^1.4.17",
-    "hono": "^4.6.11"
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.6.11",
+    "postgres": "^3.4.8"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.5.34",
     "@cloudflare/workers-types": "^4.20241127.0",
     "@hono/zod-validator": "^0.7.6",
+    "@types/pg": "^8.16.0",
+    "drizzle-kit": "^0.31.8",
     "typescript": "^5.7.2",
     "vitest": "~2.1.8",
     "wrangler": "^3.94.0",

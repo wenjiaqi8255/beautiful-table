@@ -1,34 +1,27 @@
 name = "beautiful-table-worker"
 main = "src/index.ts"
-compatibility_date = "2024-01-01"
+compatibility_date = "2025-01-28"
 compatibility_flags = ["nodejs_compat"]
 
-# D1 Database binding
-[[d1_databases]]
-binding = "DB"
-database_name = "beautiful-table-db"
-database_id = "your-database-id-here"  # Replace with actual D1 database ID
-
 # Environment variables (use wrangler secret for sensitive values)
-# wrangler secret put JWT_SECRET
-# wrangler secret put GOOGLE_OAUTH_CLIENT_ID
-# wrangler secret put GOOGLE_OAUTH_CLIENT_SECRET
+# wrangler secret put DATABASE_URL
+# wrangler secret put BETTER_AUTH_SECRET
+# wrangler secret put GOOGLE_CLIENT_ID
+# wrangler secret put GOOGLE_CLIENT_SECRET
 # wrangler secret put STRIPE_SECRET_KEY
-# wrangler secret put STRIPE_WEBHOOK_SECRET
 
 [vars]
 ENVIRONMENT = "production"
+APP_URL = "https://beautiful-table-worker.aries10011.workers.dev"
+
+# Staging environment configuration
+[env.staging]
+name = "beautiful-table-worker-staging"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+APP_URL = "https://beautiful-table-worker-staging.aries10011.workers.dev"
 
 # Vitest integration for testing
 [env.test]
 name = "beautiful-table-worker-test"
-
-# Production deployment configuration
-# Deploy with: wrangler deploy --env production
-[env.production]
-name = "beautiful-table-worker-prod"
-
-# Custom domain (optional)
-# routes = [
-#   { pattern = "api.yourdomain.com/*", zone_name = "yourdomain.com" }
-# ]

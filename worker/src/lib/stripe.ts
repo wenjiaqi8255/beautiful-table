@@ -1,3 +1,7 @@
+import { eq, sql } from 'drizzle-orm';
+import { getDb } from '../db';
+import { user, transactions } from '../db/schema';
+
 export interface PricingTier {
   name: string;
   credits: number;
@@ -71,10 +75,10 @@ export async function createPaymentIntent(amount: number, userId: string) {
  * Handle Stripe webhook events
  * TODO: Implement actual webhook handling
  */
-export async function handleWebhook(event: string, data: any) {
+export async function handleWebhook(event: string, data: any, env: any) {
   switch (event) {
     case 'payment_intent.succeeded':
-      return handlePaymentSucceeded(data);
+      return await handlePaymentSucceeded(data, env);
     case 'payment_intent.failed':
       return handlePaymentFailed(data);
     default:
@@ -82,7 +86,7 @@ export async function handleWebhook(event: string, data: any) {
   }
 }
 
-async function handlePaymentSucceeded(data: any) {
+async function handlePaymentSucceeded(data: any, env: any) {
   const { id, amount, metadata } = data;
   const userId = metadata?.userId;
 
@@ -91,9 +95,29 @@ async function handlePaymentSucceeded(data: any) {
   }
 
   const credits = getCreditsForAmount(amount);
+  const db = getDb(env.DATABASE_URL);
 
-  // TODO: Add credits to user in D1 database
-  // TODO: Record transaction
+  // Add credits to user
+  await db
+    .update(user)
+    .set({
+      credits: sql`${user.credits} + ${credits}`,
+      totalPurchased: sql`${user.totalPurchased} + ${credits}`,
+      updatedAt: Math.floor(Date.now() / 1000),
+    })
+    .where(eq(user.id, userId));
+
+  // Record transaction
+  const transactionId = crypto.randomUUID();
+  await db.insert(transactions).values({
+    id: transactionId,
+    userId,
+    amount,
+    creditsPurchased: credits,
+    stripePaymentIntentId: id,
+    status: 'completed',
+    createdAt: Math.floor(Date.now() / 1000),
+  });
 
   return {
     userId,

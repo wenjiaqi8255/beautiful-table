@@ -2,11 +2,7 @@ import { Hono } from 'hono';
 import { verifyAuth } from '../lib/auth';
 import { createPaymentIntent, handleWebhook, PRICING_TIERS } from '../lib/stripe';
 
-type Bindings = {
-  DB: D1Database;
-};
-
-const paymentRoutes = new Hono<{ Bindings: Bindings }>();
+const paymentRoutes = new Hono<{ Bindings: Env }>();
 
 // GET /api/payment/pricing - Get pricing tiers
 paymentRoutes.get('/pricing', async (c) => {
@@ -45,7 +41,7 @@ paymentRoutes.post('/webhook', async (c) => {
     const body = await c.req.json();
     const { type, data } = body;
 
-    const result = await handleWebhook(type, data.object);
+    const result = await handleWebhook(type, data.object, c.env);
     return c.json({ received: true, ...result });
   } catch (error) {
     console.error('Error handling webhook:', error);

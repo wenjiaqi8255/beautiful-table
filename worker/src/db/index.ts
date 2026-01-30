@@ -1,12 +1,12 @@
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { Pool } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
 
 let db: ReturnType<typeof drizzle>;
 
 export function getDb(databaseUrl: string) {
   if (!db) {
-    const client = new Pool({ connectionString: databaseUrl });
-    db = drizzle({ client });
+    const sql = neon(databaseUrl);
+    db = drizzle({ client: sql });
   }
   return db;
 }
